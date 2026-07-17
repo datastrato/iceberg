@@ -55,6 +55,7 @@ import org.apache.iceberg.rest.responses.ConfigResponse;
 import org.apache.iceberg.rest.responses.ErrorResponse;
 import org.apache.iceberg.rest.responses.ListTablesResponse;
 import org.apache.iceberg.rest.responses.LoadViewResponse;
+import org.apache.iceberg.view.View;
 import org.apache.iceberg.view.ViewCatalogTests;
 import org.apache.iceberg.view.ViewMetadata;
 import org.eclipse.jetty.compression.gzip.GzipCompression;
@@ -237,6 +238,44 @@ public class TestRESTViewCatalog extends ViewCatalogTests<RESTCatalog> {
             any(),
             eq(ListTablesResponse.class),
             any());
+  }
+
+  @Test
+  public void materializedViewStorageTableRoundTripAndReplacement() {
+    Namespace namespace = Namespace.of("mv");
+    TableIdentifier viewIdentifier = TableIdentifier.of(namespace, "events_by_day");
+    TableIdentifier storageTable = TableIdentifier.of(namespace, "events_by_day_storage");
+    catalog().createNamespace(namespace);
+
+    View view =
+        catalog()
+            .buildView(viewIdentifier)
+            .withSchema(SCHEMA)
+            .withDefaultNamespace(namespace)
+            .withStorageTable(storageTable)
+            .withQuery("spark", "select * from mv.events")
+            .create();
+    assertThat(view.currentVersion().storageTable()).isEqualTo(storageTable);
+    assertThat(catalog().loadView(viewIdentifier).currentVersion().storageTable())
+        .isEqualTo(storageTable);
+
+    View replaced =
+        catalog()
+            .buildView(viewIdentifier)
+            .withSchema(SCHEMA)
+            .withDefaultNamespace(namespace)
+            .withQuery("spark", "select id from mv.events")
+            .replace();
+    assertThat(replaced.currentVersion().storageTable()).isEqualTo(storageTable);
+
+    replaced
+        .replaceVersion()
+        .withSchema(SCHEMA)
+        .withDefaultNamespace(namespace)
+        .withQuery("spark", "select id, data from mv.events")
+        .commit();
+    assertThat(catalog().loadView(viewIdentifier).currentVersion().storageTable())
+        .isEqualTo(storageTable);
   }
 
   @Test

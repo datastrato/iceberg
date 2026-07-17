@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.apache.iceberg.types.Types;
 import org.apache.iceberg.view.ImmutableViewVersion;
@@ -87,6 +88,7 @@ public class TestCreateViewRequestParser {
                     .versionId(1)
                     .timestampMillis(23L)
                     .defaultNamespace(Namespace.of("ns1"))
+                    .storageTable(TableIdentifier.of("ns1", "view-storage"))
                     .build())
             .location("location")
             .schema(new Schema(Types.NestedField.required(1, "x", Types.LongType.get())))
@@ -103,6 +105,10 @@ public class TestCreateViewRequestParser {
             + "    \"schema-id\" : 0,\n"
             + "    \"summary\" : { },\n"
             + "    \"default-namespace\" : [ \"ns1\" ],\n"
+            + "    \"storage-table\" : {\n"
+            + "      \"namespace\" : [ \"ns1\" ],\n"
+            + "      \"name\" : \"view-storage\"\n"
+            + "    },\n"
             + "    \"representations\" : [ ]\n"
             + "  },\n"
             + "  \"schema\" : {\n"

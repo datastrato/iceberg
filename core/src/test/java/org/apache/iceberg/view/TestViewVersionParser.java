@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
 
@@ -49,6 +50,7 @@ public class TestViewVersionParser {
             .addRepresentations(firstRepresentation, secondRepresentation)
             .summary(ImmutableMap.of("user", "some-user"))
             .schemaId(1)
+            .storageTable(TableIdentifier.of("one", "storage"))
             .build();
 
     String serializedRepresentations =
@@ -57,7 +59,7 @@ public class TestViewVersionParser {
 
     String serializedViewVersion =
         String.format(
-            "{\"version-id\":1, \"timestamp-ms\":12345, \"schema-id\":1, \"summary\":{\"user\":\"some-user\"}, \"representations\":%s, \"default-namespace\":[\"one\",\"two\"]}",
+            "{\"version-id\":1, \"timestamp-ms\":12345, \"schema-id\":1, \"summary\":{\"user\":\"some-user\"}, \"representations\":%s, \"default-namespace\":[\"one\",\"two\"], \"storage-table\":{\"namespace\":[\"one\"],\"name\":\"storage\"}}",
             serializedRepresentations);
 
     assertThat(ViewVersionParser.fromJson(serializedViewVersion))
@@ -87,6 +89,7 @@ public class TestViewVersionParser {
             .defaultNamespace(Namespace.of("one", "two"))
             .defaultCatalog("catalog")
             .schemaId(1)
+            .storageTable(TableIdentifier.of("one", "storage"))
             .build();
 
     String expectedRepresentations =
@@ -96,7 +99,8 @@ public class TestViewVersionParser {
     String expectedViewVersion =
         String.format(
             "{\"version-id\":1,\"timestamp-ms\":12345,\"schema-id\":1,\"summary\":{\"user\":\"some-user\"},"
-                + "\"default-catalog\":\"catalog\",\"default-namespace\":[\"one\",\"two\"],\"representations\":%s}",
+                + "\"default-catalog\":\"catalog\",\"default-namespace\":[\"one\",\"two\"],"
+                + "\"storage-table\":{\"namespace\":[\"one\"],\"name\":\"storage\"},\"representations\":%s}",
             expectedRepresentations);
 
     assertThat(ViewVersionParser.toJson(viewVersion))
@@ -146,5 +150,21 @@ public class TestViewVersionParser {
     assertThatThrownBy(() -> ViewVersionParser.fromJson(missingRepresentations))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Cannot parse missing field: representations");
+  }
+
+  @Test
+  public void storageTableNullAndValidation() {
+    String viewVersion =
+        "{\"version-id\":1,\"timestamp-ms\":12345,\"schema-id\":1,\"summary\":{},"
+            + "\"default-namespace\":[\"one\"],\"storage-table\":null,\"representations\":[]}";
+    assertThat(ViewVersionParser.fromJson(viewVersion).storageTable()).isNull();
+
+    String missingStorageTable = viewVersion.replace(",\"storage-table\":null", "");
+    assertThat(ViewVersionParser.fromJson(missingStorageTable).storageTable()).isNull();
+
+    String invalidStorageTable = viewVersion.replace("null", "[]");
+    assertThatThrownBy(() -> ViewVersionParser.fromJson(invalidStorageTable))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Cannot parse missing or non-object table identifier: []");
   }
 }

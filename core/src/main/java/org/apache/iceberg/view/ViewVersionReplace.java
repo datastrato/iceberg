@@ -31,6 +31,7 @@ import java.util.List;
 import org.apache.iceberg.EnvironmentContext;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.exceptions.CommitFailedException;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
@@ -42,6 +43,7 @@ class ViewVersionReplace implements ReplaceViewVersion {
   private final List<ViewRepresentation> representations = Lists.newArrayList();
   private ViewMetadata base;
   private Namespace defaultNamespace = null;
+  private TableIdentifier storageTable = null;
   private String defaultCatalog = null;
   private Schema schema = null;
 
@@ -78,6 +80,7 @@ class ViewVersionReplace implements ReplaceViewVersion {
             .schemaId(schema.schemaId())
             .defaultNamespace(defaultNamespace)
             .defaultCatalog(defaultCatalog)
+            .storageTable(storageTable != null ? storageTable : viewVersion.storageTable())
             .putAllSummary(EnvironmentContext.get())
             .addAllRepresentations(representations)
             .build();
@@ -124,6 +127,12 @@ class ViewVersionReplace implements ReplaceViewVersion {
   @Override
   public ReplaceViewVersion withDefaultNamespace(Namespace namespace) {
     this.defaultNamespace = namespace;
+    return this;
+  }
+
+  @Override
+  public ReplaceViewVersion withStorageTable(TableIdentifier identifier) {
+    this.storageTable = identifier;
     return this;
   }
 }

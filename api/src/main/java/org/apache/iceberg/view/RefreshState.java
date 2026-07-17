@@ -18,36 +18,21 @@
  */
 package org.apache.iceberg.view;
 
-import javax.annotation.Nullable;
-import org.apache.iceberg.catalog.TableIdentifier;
-import org.immutables.value.Value;
+import java.util.List;
 
-/**
- * A version of the view at a point in time.
- *
- * <p>A version consists of a view metadata file.
- *
- * <p>Versions are created by view operations, like Create and Replace.
- */
-@Value.Immutable
-@SuppressWarnings("ImmutablesStyle")
-@Value.Style(
-    typeImmutable = "ImmutableViewVersion",
-    visibilityString = "PUBLIC",
-    builderVisibilityString = "PUBLIC")
-interface BaseViewVersion extends ViewVersion {
+/** The state of a materialized view refresh recorded in a storage table snapshot summary. */
+public interface RefreshState {
 
-  @Override
-  @Value.Lazy
-  default String operation() {
-    return ViewVersion.super.operation();
-  }
+  /** Return the materialized view version that was refreshed. */
+  int viewVersionId();
 
-  @Override
-  @Nullable
-  String defaultCatalog();
+  /** Return the time when the refresh started, in milliseconds from the epoch. */
+  long refreshStartTimestampMillis();
 
-  @Override
-  @Nullable
-  TableIdentifier storageTable();
+  /**
+   * Return the states of source tables and views that were used during the refresh.
+   *
+   * <p>The returned list may be empty when source state is not tracked.
+   */
+  List<SourceState> sourceStates();
 }

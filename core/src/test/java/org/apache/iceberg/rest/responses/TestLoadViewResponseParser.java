@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.apache.iceberg.types.Types;
 import org.apache.iceberg.view.ImmutableViewVersion;
@@ -57,6 +58,35 @@ public class TestLoadViewResponseParser {
             () -> LoadViewResponseParser.fromJson("{\"metadata-location\": \"custom-location\"}"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Cannot parse missing field: metadata");
+  }
+
+  @Test
+  public void roundTripStorageTable() {
+    TableIdentifier storageTable = TableIdentifier.of("ns1", "view-storage");
+    ViewMetadata metadata =
+        ViewMetadata.builder()
+            .assignUUID("386b9f01-002b-4d8c-b77f-42c3fd3b7c9b")
+            .setLocation("location")
+            .addSchema(new Schema(Types.NestedField.required(1, "x", Types.LongType.get())))
+            .addVersion(
+                ImmutableViewVersion.builder()
+                    .schemaId(0)
+                    .versionId(1)
+                    .timestampMillis(23L)
+                    .defaultNamespace(Namespace.of("ns1"))
+                    .storageTable(storageTable)
+                    .build())
+            .setCurrentVersionId(1)
+            .build();
+    LoadViewResponse response =
+        ImmutableLoadViewResponse.builder()
+            .metadata(metadata)
+            .metadataLocation("custom-location")
+            .build();
+
+    LoadViewResponse parsed =
+        LoadViewResponseParser.fromJson(LoadViewResponseParser.toJson(response));
+    assertThat(parsed.metadata().currentVersion().storageTable()).isEqualTo(storageTable);
   }
 
   @Test

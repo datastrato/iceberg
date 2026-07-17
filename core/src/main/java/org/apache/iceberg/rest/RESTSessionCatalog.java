@@ -1567,6 +1567,7 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
     private final Map<String, String> properties = Maps.newHashMap();
     private final List<ViewRepresentation> representations = Lists.newArrayList();
     private Namespace defaultNamespace = null;
+    private TableIdentifier storageTable = null;
     private String defaultCatalog = null;
     private Schema schema = null;
     private String location = null;
@@ -1632,6 +1633,12 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
     }
 
     @Override
+    public ViewBuilder withStorageTable(TableIdentifier newStorageTable) {
+      this.storageTable = newStorageTable;
+      return this;
+    }
+
+    @Override
     public ViewBuilder withProperties(Map<String, String> newProperties) {
       this.properties.putAll(newProperties);
       return this;
@@ -1665,6 +1672,7 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
               .addAllRepresentations(representations)
               .defaultNamespace(defaultNamespace)
               .defaultCatalog(defaultCatalog)
+              .storageTable(storageTable)
               .timestampMillis(System.currentTimeMillis())
               .putAllSummary(EnvironmentContext.get())
               .build();
@@ -1765,6 +1773,8 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
               .addAllRepresentations(representations)
               .defaultNamespace(defaultNamespace)
               .defaultCatalog(defaultCatalog)
+              .storageTable(
+                  storageTable != null ? storageTable : metadata.currentVersion().storageTable())
               .timestampMillis(System.currentTimeMillis())
               .putAllSummary(EnvironmentContext.get())
               .build();

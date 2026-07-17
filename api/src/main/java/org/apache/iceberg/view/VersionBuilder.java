@@ -20,6 +20,7 @@ package org.apache.iceberg.view;
 
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 
 public interface VersionBuilder<T> {
   /**
@@ -54,4 +55,14 @@ public interface VersionBuilder<T> {
    * @return this for method chaining
    */
   T withDefaultNamespace(Namespace namespace);
+
+  /**
+   * Set the storage table containing precomputed results for the materialized view.
+   *
+   * @param identifier the storage table identifier
+   * @return this for method chaining
+   */
+  default T withStorageTable(TableIdentifier identifier) {
+    throw new UnsupportedOperationException("Setting a view's storage table is not supported");
+  }
 }
