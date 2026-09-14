@@ -639,14 +639,14 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
 
       trackFileIO(ops);
 
-      RESTTable table =
+      RESTScanPlanningTable table =
           restTableForScanPlanning(
               ops, identifier, tableClient, tableConf, labels, readRestrictions);
       if (table != null) {
         return table;
       }
 
-      return new BaseRESTTable(
+      return new RESTTable(
           ops,
           fullTableName(identifier),
           metricsReporter(paths.metrics(identifier), tableClient),
@@ -655,7 +655,7 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
     };
   }
 
-  private RESTTable restTableForScanPlanning(
+  private RESTScanPlanningTable restTableForScanPlanning(
       TableOperations ops,
       TableIdentifier finalIdentifier,
       RESTClient restClient,
@@ -696,7 +696,7 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
           finalIdentifier,
           Endpoint.V1_SUBMIT_TABLE_SCAN_PLAN);
 
-      return new RESTTable(
+      return new RESTScanPlanningTable(
           ops,
           fullTableName(finalIdentifier),
           metricsReporter(paths.metrics(finalIdentifier), restClient),
@@ -802,19 +802,19 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
 
     trackFileIO(ops);
 
-    RESTTable restTable =
+    RESTScanPlanningTable restTable =
         restTableForScanPlanning(
             ops,
             ident,
             tableClient,
             tableConf,
             response.labels(),
-            ReadRestrictions.empty());
+            response.readRestrictions());
     if (restTable != null) {
       return restTable;
     }
 
-    return new BaseRESTTable(
+    return new RESTTable(
         ops,
         fullTableName(ident),
         metricsReporter(paths.metrics(ident), tableClient),
@@ -1089,19 +1089,19 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
 
       trackFileIO(ops);
 
-      RESTTable restTable =
+      RESTScanPlanningTable restTable =
           restTableForScanPlanning(
               ops,
               ident,
               tableClient,
               tableConf,
               response.labels(),
-              ReadRestrictions.empty());
+              response.readRestrictions());
       if (restTable != null) {
         return restTable;
       }
 
-      return new BaseRESTTable(
+      return new RESTTable(
           ops,
           fullTableName(ident),
           metricsReporter(paths.metrics(ident), tableClient),
