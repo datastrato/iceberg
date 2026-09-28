@@ -805,12 +805,7 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
 
     RESTScanPlanningTable restTable =
         restTableForScanPlanning(
-            ops,
-            ident,
-            tableClient,
-            tableConf,
-            response.labels(),
-            response.readRestrictions());
+            ops, ident, tableClient, tableConf, response.labels(), response.readRestrictions());
     if (restTable != null) {
       return restTable;
     }
@@ -1092,12 +1087,7 @@ public class RESTSessionCatalog extends BaseViewSessionCatalog
 
       RESTScanPlanningTable restTable =
           restTableForScanPlanning(
-              ops,
-              ident,
-              tableClient,
-              tableConf,
-              response.labels(),
-              response.readRestrictions());
+              ops, ident, tableClient, tableConf, response.labels(), response.readRestrictions());
       if (restTable != null) {
         return restTable;
       }

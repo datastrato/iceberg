@@ -22,19 +22,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.iceberg.Parameters;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
+import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.expressions.Binder;
 import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.expressions.Expressions;
 import org.apache.iceberg.functions.IcebergFunction;
-import org.apache.iceberg.functions.MaskAlphanum;
-import org.apache.iceberg.functions.ReplaceWithNull;
-import org.apache.iceberg.functions.ShowLast4;
-import org.apache.iceberg.functions.UnknownFunction;
+import org.apache.iceberg.functions.IcebergFunctions;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableList;
 import org.apache.iceberg.rest.HTTPRequest;
 import org.apache.iceberg.rest.ParserContext;
@@ -89,6 +89,13 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
 
   @BeforeEach
   public void createTableAndRestrictedCatalog() {
+    // Spark caches catalog instances for the session. Use a unique identifier so a REST table
+    // cached by a previous test cannot point at manifests purged when that test dropped its table.
+    this.tableIdent =
+        TableIdentifier.of(
+            Namespace.of("default"), "table_" + UUID.randomUUID().toString().replace("-", ""));
+    this.tableName = tableName(tableIdent.name());
+
     sql(
         "CREATE TABLE %s (id BIGINT NOT NULL, email STRING, country STRING) USING iceberg",
         tableName);
@@ -121,7 +128,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
 
   @TestTemplate
   public void masksAreEnforcedThroughTheRestCatalog() {
-    restrict(null, new MaskAlphanum(fieldId("email")));
+    restrict(null, IcebergFunctions.maskAlphanum(fieldId("email")));
 
     assertEquals(
         "Email should be masked for every row",
@@ -134,7 +141,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
   public void masksApplyToTheColumnUnderItsOriginalName() {
     // Spec: the reader must present the action's result under the original field id, so a query
     // that names the column explicitly must still see the masked value.
-    restrict(null, new ShowLast4(fieldId("email")));
+    restrict(null, IcebergFunctions.showLast4(fieldId("email")));
 
     // Everything but the last four code points is masked with mask-alphanum rules, which keep the
     // allow-listed punctuation as-is.
@@ -160,7 +167,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
     // nothing.
     restrict(
         boundFilter(Expressions.equal("email", "alice@example.com")),
-        new MaskAlphanum(fieldId("email")));
+        IcebergFunctions.maskAlphanum(fieldId("email")));
 
     assertEquals(
         "The surviving row should be masked, not filtered away",
@@ -184,7 +191,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
 
     // The field id is real but absent from the current schema, so per spec the projection does not
     // apply rather than failing the query.
-    restrict(null, new MaskAlphanum(droppedFieldId));
+    restrict(null, IcebergFunctions.maskAlphanum(droppedFieldId));
 
     assertEquals(
         "The scan should succeed with no masking applied",
@@ -194,7 +201,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
 
   @TestTemplate
   public void unrecognizedActionFailsClosedRatherThanReturningRawValues() {
-    restrict(null, new UnknownFunction(fieldId("email"), "mask-from-the-future"));
+    restrict(null, IcebergFunctions.fromString("mask-from-the-future", fieldId("email")));
 
     assertThatThrownBy(() -> sql("SELECT id, email FROM %s", restrictedTable))
         .hasStackTraceContaining("Cannot bind unknown function 'mask-from-the-future'");
@@ -202,7 +209,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
 
   @TestTemplate
   public void replaceWithNullOnARequiredFieldFails() {
-    restrict(null, new ReplaceWithNull(fieldId("id")));
+    restrict(null, IcebergFunctions.replaceWithNull(fieldId("id")));
 
     assertThatThrownBy(() -> sql("SELECT id FROM %s", restrictedTable))
         .hasStackTraceContaining("Cannot apply replace-with-null to required field: id");
@@ -210,7 +217,7 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
 
   @TestTemplate
   public void writesToARestrictedTableAreRejected() {
-    restrict(null, new MaskAlphanum(fieldId("email")));
+    restrict(null, IcebergFunctions.maskAlphanum(fieldId("email")));
 
     assertThatThrownBy(
             () -> sql("INSERT INTO %s VALUES (4, 'dan@example.com', 'US')", restrictedTable))
@@ -295,6 +302,8 @@ public class TestSparkReadRestrictions extends ExtensionsTestBase {
               .withTableMetadata(loaded.tableMetadata())
               .addAllConfig(loaded.config())
               .addAllCredentials(loaded.credentials())
+              .withRemoteSigningConfig(loaded.remoteSigningConfig())
+              .withLabels(loaded.labels())
               .withReadRestrictions(restrictions)
               .build();
 

@@ -19,7 +19,7 @@
 package org.apache.iceberg.spark.functions;
 
 import org.apache.iceberg.functions.IcebergFunction;
-import org.apache.iceberg.functions.MaskAlphanum;
+import org.apache.iceberg.functions.IcebergFunctions;
 import org.apache.iceberg.types.Types;
 import org.apache.iceberg.util.SerializableFunction;
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -98,7 +98,7 @@ public class MaskAlphanumFunction implements UnboundFunction {
 
   public static class BoundMaskAlphanum implements ScalarFunction<UTF8String> {
     private static final SerializableFunction<String, String> FN =
-        new MaskAlphanum(0).bind(Types.StringType.get());
+        IcebergFunctions.maskAlphanum(0).bind(Types.StringType.get());
 
     /** Magic method used in codegen. */
     public static UTF8String invoke(UTF8String value) {

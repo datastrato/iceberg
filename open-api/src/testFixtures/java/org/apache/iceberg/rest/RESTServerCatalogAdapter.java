@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import org.apache.iceberg.aws.s3.S3FileIOProperties;
 import org.apache.iceberg.azure.AzureProperties;
-import org.apache.iceberg.functions.MaskToFixedValue;
+import org.apache.iceberg.functions.IcebergFunctions;
 import org.apache.iceberg.gcp.GCPProperties;
 import org.apache.iceberg.relocated.com.google.common.collect.ImmutableList;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
@@ -103,12 +103,14 @@ class RESTServerCatalogAdapter extends RESTCatalogAdapter {
         PropertyUtil.propertyAsInt(catalogContext.configuration(), READ_RESTRICTIONS_FIELD_ID, 2);
 
     ReadRestrictions restrictions =
-        ReadRestrictions.of(null, ImmutableList.of(new MaskToFixedValue(fieldId)));
+        ReadRestrictions.of(null, ImmutableList.of(IcebergFunctions.maskToFixedValue(fieldId)));
 
     return LoadTableResponse.builder()
         .withTableMetadata(response.tableMetadata())
         .addAllConfig(response.config())
         .addAllCredentials(response.credentials())
+        .withRemoteSigningConfig(response.remoteSigningConfig())
+        .withLabels(response.labels())
         .withReadRestrictions(restrictions)
         .build();
   }

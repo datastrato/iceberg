@@ -1239,8 +1239,7 @@ public class TestRESTScanPlanning extends TestBaseWithRESTServer {
             null,
             null);
 
-    RESTScanPlanningTable table =
-        restTableFor(catalogWithAdapter.catalog, "poll_timeout_test");
+    RESTScanPlanningTable table = restTableFor(catalogWithAdapter.catalog, "poll_timeout_test");
     setParserContext(table);
     RESTTableScan scan = restTableScanFor(table);
 
